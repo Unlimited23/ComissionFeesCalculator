@@ -1,4 +1,4 @@
-# Comission Fees Calculator
+# Commission Fees Calculator
 
 ## Set up
 
