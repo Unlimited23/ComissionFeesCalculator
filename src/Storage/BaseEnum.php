@@ -2,6 +2,8 @@
 
 namespace App\Storage;
 
+use App\Exceptions\NonExistingClassException;
+
 /**
  * Enumeration class for reading constants of other enumeration classes.
  *
@@ -11,14 +13,14 @@ abstract class BaseEnum
 {
     public function getConst($const)
     {
-        $res = '';
+        $res = false;
 
         try {
             $reflectionClass = new \ReflectionClass(get_called_class());
 
             $res = $reflectionClass->getConstant($const);
-        } catch (Exception $e) {
-            throw new Exception('No such class found');
+        } catch (\ReflectionException $e) {
+            throw new NonExistingClassException;
         }
 
         return $res;

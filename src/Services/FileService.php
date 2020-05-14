@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\InvalidFilePathException;
+
 /**
  * Service for reading file content.
  *
@@ -14,11 +16,11 @@ class FileService
      */
     public static function readConfigInput()
     {
-        $fileName = ROOT_DIR .'/src/Storage/input.ini';
+        $fileName = dirname(__DIR__) .'/Storage/input.ini';
 
         // Checks if such file doesn't exist.
         if (!file_exists($fileName)) {
-            throw new \Non('Invalid file path!');
+            throw new InvalidFilePathException;
         }
 
         return parse_ini_file($fileName, true);
@@ -29,11 +31,11 @@ class FileService
      */
     public static function readDataInput()
     {
-        $fileName = ROOT_DIR .'/src/Storage/input.csv';
+        $fileName = dirname(__DIR__) .'/Storage/input.csv';
 
         // Checks if such file doesn't exist.
         if (!file_exists($fileName)) {
-            throw new \InvalidArgumentException('Invalid file path!');
+            throw new InvalidFilePathException;
         }
 
         /**

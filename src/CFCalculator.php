@@ -11,6 +11,12 @@ use App\Services\ValidatorService;
 
 use App\Entities\OperationEntity;
 
+use App\Exceptions\NonExistingUserEnumException;
+use App\Exceptions\NonExistingUserClassException;
+use App\Exceptions\NonExistingOperationEnumException;
+use App\Exceptions\NonExistingOperationClassException;
+use App\Exceptions\WrongConfigurationPropertyException;
+
 /**
  * Commission fees calculator.
  *
@@ -30,11 +36,6 @@ class CFCalculator
     private $config = null;
 
     /**
-     * @var OperationEntity
-     */
-    private $operations = null;
-
-    /**
      * @var UserStorage
      */
     private $userStorage = null;
@@ -48,6 +49,11 @@ class CFCalculator
         $this->setUserStorage(new UserStorage());
     }
 
+    /**
+     * @desc Calculates commission fees for all operations
+     *
+     * @return array Calculated Commission fees
+     */
     public function init()
     {
         $data = $this->getData();
@@ -100,29 +106,29 @@ class CFCalculator
         // Type of operation
         $oper = mb_strtoupper($prop[3]);
 
-        // If such const exists
-        if (OperationEnum::getConst($oper) !== '') {
-            /**
-             * @var OperationEntity Operation
-             */
-            $operClass = 'App\\'. OperationEnum::getConst($oper);
+        // Wrong type of operation
+        if (OperationEnum::getConst($oper) === false) {
+            throw new NonExistingOperationEnumException;
+        }
 
-            try {
-                if (class_exists($operClass)) {
-                    $user = $this->createUser($prop[1], $prop[2], $oper);
+        /**
+        * @var OperationEntity Operation
+        */
+        $operClass = 'App\\'. OperationEnum::getConst($oper);
 
-                    if (!is_null($user)) {
-                        $oClass = new $operClass(
-                            $prop[0],
-                            $prop[4],
-                            $prop[5],
-                            $user
-                        );
-                    }
-                }
-            } catch (Exception $e) {
-                throw new Exception('No such class found');
-            }
+        if (!class_exists($operClass)) {
+            throw new NonExistingOperationClassException;
+        }
+
+        $user = $this->createUser($prop[1], $prop[2], $oper);
+
+        if (!is_null($user)) {
+            $oClass = new $operClass(
+               $prop[0],
+               $prop[4],
+               $prop[5],
+               $user
+           );
         }
 
         return $oClass;
@@ -140,53 +146,61 @@ class CFCalculator
     private function createUser($userId, $userType, $oper)
     {
         $uClass = $conf = null;
-        $defaultCf = $amountLimit = $operationsLimit = null;
 
-        // If such const exists
-        if (UserEnum::getConst(mb_strtoupper($userType)) !== '') {
-            /**
-             * @var OperationEntity Operation
-             */
-            $userClass = 'App\\'. UserEnum::getConst(mb_strtoupper($userType));
+        // Wrong type of user
+        if (UserEnum::getConst(mb_strtoupper($userType)) === false) {
+            throw new NonExistingUserEnumException;
+        }
 
-            if (class_exists($userClass) &&
-                isset($this->getConfig()[$oper][$userType])
-            ) {
-                $conf = $this->getConfig()[$oper][$userType];
-                    
-                $defaultCf = isset($conf['default-cf']) ? $conf['default-cf'] : 0;
-                $amount = isset($conf['amount']) ? $conf['amount'] : 0;
-                $amountLimit = isset($conf['amount-limit']) ? $conf['amount-limit'] : null;
-                $operations = isset($conf['operations']) ? $conf['operations'] : 0;
-                $operationsLimit = isset($conf['operations-limit']) ? $conf['operations-limit'] : null;
+        /**
+        * @var OperationEntity Operation
+        */
+        $userClass = 'App\\'. UserEnum::getConst(mb_strtoupper($userType));
 
-                /** @var UserEntity $user */
-                $user = $this->getUserStorage()->getUser($userId);
+        if (!class_exists($userClass)) {
+            throw new NonExistingUserClassException;
+        }
 
-                // Get user from UserStorage
-                if ($user !== false) {
-                    // Setting properties in case operation type has changed
-                    $user->setDefaultCf($defaultCf);
-                    $user->setAmount($amount);
-                    $user->setAmountLimit($amountLimit);
-                    $user->setOperations($operations);
-                    $user->setOperationsLimit($operationsLimit);
+        if (
+            !isset($this->getConfig()[$oper]) ||
+            !isset($this->getConfig()[$oper][$userType])
+        ) {
+            throw new WrongConfigurationPropertyException;
+        }
 
-                    $uClass = $user;
-                } else {
-                    // Create new user
-                    $uClass = new $userClass(
-                                $userId,
-                                $defaultCf,
-                                $amount,
-                                $amountLimit,
-                                $operations,
-                                $operationsLimit
-                            );
-                    // Save it to the UserStorage
-                    $this->getUserStorage()->setUser($userId, $uClass);
-                }
-            }
+        $conf = $this->getConfig()[$oper][$userType];
+
+        $defaultCf = isset($conf['default-cf']) ? $conf['default-cf'] : 0;
+        $amount = isset($conf['amount']) ? $conf['amount'] : 0;
+        $amountLimit = isset($conf['amount-limit']) ? $conf['amount-limit'] : null;
+        $operations = isset($conf['operations']) ? $conf['operations'] : 0;
+        $operationsLimit = isset($conf['operations-limit']) ? $conf['operations-limit'] : null;
+
+        /** @var UserEntity $user */
+        $user = $this->getUserStorage()->getUser($userId);
+
+        // Get user from UserStorage
+        if ($user !== false) {
+            // Setting properties in case operation type has changed
+            $user->setDefaultCf($defaultCf);
+            $user->setAmount($amount);
+            $user->setAmountLimit($amountLimit);
+            $user->setOperations($operations);
+            $user->setOperationsLimit($operationsLimit);
+
+            $uClass = $user;
+        } else {
+            // Create new user
+            $uClass = new $userClass(
+                        $userId,
+                        $defaultCf,
+                        $amount,
+                        $amountLimit,
+                        $operations,
+                        $operationsLimit
+                    );
+            // Save it to the UserStorage
+            $this->getUserStorage()->setUser($userId, $uClass);
         }
 
         return $uClass;
@@ -214,9 +228,9 @@ class CFCalculator
         $precMul = BaseCalculator::bPow(10, $dp);
 
         // Removing the decimal part and then rounding to the upper bound
-        $amount = ceil(BaseCalculator::bMultiply($amount, $precMul));
+        $ceiledAmount = ceil(BaseCalculator::bMultiply($amount, $precMul));
         // Returning the decimal part and then formatting with precision.
-        return number_format(BaseCalculator::bDivide($amount, $precMul), $dp, '.', '');
+        return number_format(BaseCalculator::bDivide($ceiledAmount, $precMul), $dp, '.', '');
     }
 
     public function getData()
@@ -227,11 +241,6 @@ class CFCalculator
     public function getConfig()
     {
         return $this->config;
-    }
-
-    public function getOperations(): OperationEntity
-    {
-        return $this->operations;
     }
 
     public function getUserStorage(): UserStorage
@@ -247,11 +256,6 @@ class CFCalculator
     private function setConfig($config)
     {
         $this->config = $config;
-    }
-
-    private function setOperations(OperationEntity $operations)
-    {
-        $this->operations = $operations;
     }
 
     private function setUserStorage($userStorage)

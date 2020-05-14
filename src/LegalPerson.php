@@ -4,6 +4,8 @@ namespace App;
 
 use App\Entities\UserEntity;
 
+use App\Services\ValidatorService;
+
 /**
  * Legal Person.
  *
@@ -29,15 +31,29 @@ class LegalPerson extends UserEntity
         );
     }
 
+    /**
+     * @param string $args[0] Date
+     * @param string $args[1] Amount
+     *
+     * @return float The greater of either:
+     *               Amount * commission fee or
+     *               the amount limit
+     */
     public function validate(...$args)
     {
-        $date = $args[0];
         $amount = $args[1];
-        $currency = $args[2];
 
         // Calculate based on default values
-        $res = $amount;
         $this->setCurrCf($this->getDefaultCf());
+
+        // Amount * commission fee
+        $cf = BaseCalculator::bMultiply($amount, $this->getCurrCf());
+
+        // No less than
+        $res = ValidatorService::validateEval(
+            $this->getAmountLimit(),
+            [$cf, $this->getAmount()]
+        );
 
         return $res;
     }

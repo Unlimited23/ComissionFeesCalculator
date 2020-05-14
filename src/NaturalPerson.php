@@ -33,23 +33,23 @@ class NaturalPerson extends UserEntity
     /**
      * @param string $args[0] Date
      * @param string $args[1] Amount
-     * @param string $args[0] Currency
+     *
+     * @return float amount * commission fee
      */
     public function validate(...$args)
     {
         $date = $args[0];
         $amount = $args[1];
-        $currency = $args[2];
 
         // Calculate based on default values
-        $res = $amount;
+        $amVal = $amount;
         $this->setCurrCf($this->getDefaultCf());
 
         $dateWeek = $this->getWeekByDate($date);
 
         // Add current amount to the computed amount
         $this->addUsedAmount($dateWeek, $amount);
-        // Increment weekly operations by 1
+        // Increment current operations by 1
         $this->addUsedOperations($dateWeek);
 
         // Operations limit
@@ -86,13 +86,18 @@ class NaturalPerson extends UserEntity
                 // Calculate based on the default (No actions required)
             } elseif (BaseCalculator::bCompare($usam, $amLimit) === 1) { // First time exceed of amount limit
                 // Calculate based on the amount that is exceeded
-                $res = BaseCalculator::bSubtract($usam, $amLimit);
+                $amVal = BaseCalculator::bSubtract($usam, $amLimit);
             }
         }
 
-        return $res;
+        // Amount * commission fee
+        return BaseCalculator::bMultiply($amVal, $this->getCurrCf());
     }
 
+    /**
+     * @param string $dateWeek Year + number of week - e.g 202001
+     * @param float $amount
+     */
     public function addUsedAmount($dateWeek, $amount)
     {
         $this->setUsedAmount(

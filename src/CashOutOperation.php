@@ -45,14 +45,10 @@ class CashOutOperation extends OperationEntity implements OperationInterface
         }
 
         // User specific validation
-        $amVal = $user->validate(
+        $cfRes = $user->validate(
             $this->getDate(),
-            $amount,
-            $this->getCurrency()
+            $amount
         );
-
-        // Amount * commission fee
-        $cfRes = BaseCalculator::bMultiply($amVal, $user->getCurrCf());
 
         if ($needsConvert) {
             // Reverse the conversion back to default currency.

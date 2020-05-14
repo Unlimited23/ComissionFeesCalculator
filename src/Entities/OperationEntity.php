@@ -78,7 +78,7 @@ abstract class OperationEntity
 
     protected function setDate($date)
     {
-        $this->date = $date;
+        $this->date = date('Y-m-d', strtotime($date));
     }
 
     protected function setAmount($amount)

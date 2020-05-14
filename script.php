@@ -3,9 +3,6 @@
 // Autoloading with Composer
 require __DIR__ . '/vendor/autoload.php';
 
-// Defining global constant for the current directory
-define('ROOT_DIR', __DIR__);
-
 try {
     // Calculator instance
     $cfc = new \App\CFCalculator();
@@ -19,5 +16,5 @@ try {
         $fs::printToStdout($res);
     }
 } catch (\Exception $e) {
-    echo $e->getMessage() . PHP_EOL;
+    echo $e->getTraceAsString() . PHP_EOL;
 }
