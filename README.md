@@ -26,6 +26,6 @@ Run the following command in a cmd:
 `php script.php input.csv`
 
 ## How to run the tests:
-Run the following command in a cmd:
-
+Run the following commands in a cmd:
+`composer install`
 `./vendor/bin/phpunit`
