@@ -7,7 +7,12 @@ Run the following command in a cmd:
 
 `git clone https://github.com/Unlimited23/ComissionFeesCalculator.git`
 
-* Step 2 - Autoload all the classes:
+* Step 2 - Navigate to the project folder:
+Run the following command in a cmd:
+
+`cd ComissionFeesCalculator/`
+
+* Step 3 - Autoload all the classes:
 Run the following command in a cmd:
 
 `composer dump-autoload -o`
