@@ -30,4 +30,4 @@ Run the following commands in a cmd:
 
 `composer install`
 
-`./vendor/bin/phpunit`
+`./vendor/bin/phpunit tests`
