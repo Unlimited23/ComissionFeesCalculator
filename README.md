@@ -27,5 +27,7 @@ Run the following command in a cmd:
 
 ## How to run the tests:
 Run the following commands in a cmd:
+
 `composer install`
+
 `./vendor/bin/phpunit`
